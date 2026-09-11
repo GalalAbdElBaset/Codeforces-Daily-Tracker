@@ -43,7 +43,7 @@ document.addEventListener("DOMContentLoaded", () => {
     handleInput.addEventListener("keydown", (e) => {
         if (e.key === "Enter") searchUser();
     });
-    
+
     // Auto search if handle in URL
     const urlParams = new URLSearchParams(window.location.search);
     const handle = urlParams.get("handle");
@@ -111,15 +111,26 @@ function formatVerdict(verdict) {
 }
 
 // ==========================================
-// Fetch API
+// Fetch API (مع cache buster)
 // ==========================================
 
-async function fetchCodeforcesAPI(handle) {
-    const apiUrl = `/api/codeforces?handle=${encodeURIComponent(handle)}`;
+async function fetchCodeforcesAPI(handle, useCacheBuster = false) {
+    let apiUrl = `/api/codeforces?handle=${encodeURIComponent(handle)}`;
+
+    // ✅ Cache buster لمنع Vercel caching
+    if (useCacheBuster) {
+        apiUrl += `&_t=${Date.now()}`;
+    }
+
+    console.log("API Request:", apiUrl);
 
     const response = await fetch(apiUrl, {
         method: "GET",
-        headers: { Accept: "application/json" },
+        headers: {
+            Accept: "application/json",
+            "Cache-Control": "no-cache",
+            "Pragma": "no-cache"
+        },
         cache: "no-store"
     });
 
@@ -130,6 +141,15 @@ async function fetchCodeforcesAPI(handle) {
     }
 
     const data = await response.json();
+
+    // ✅ Log meta info (عدد submissions + أحدث تاريخ)
+    if (data._meta) {
+        console.log("=== API META ===");
+        console.log("Total:", data._meta.total);
+        console.log("Newest:", new Date(data._meta.newest * 1000).toISOString());
+        console.log("Oldest:", new Date(data._meta.oldest * 1000).toISOString());
+        console.log("=================");
+    }
 
     if (!data || data.status !== "OK") {
         throw new Error(data?.comment || "فشل في جلب البيانات");
@@ -155,10 +175,10 @@ async function searchUser() {
     setLoading(true);
 
     try {
-        const submissions = await fetchCodeforcesAPI(handle);
-        
+        const submissions = await fetchCodeforcesAPI(handle, false);
+
         console.log(`Total submissions: ${submissions.length}`);
-        
+
         if (!submissions || submissions.length === 0) {
             showError(`📭 لا توجد أي محاولات للمستخدم "${handle}"`);
             return;
@@ -175,7 +195,73 @@ async function searchUser() {
 }
 
 // ==========================================
-// Display All Days (الوظيفة الرئيسية)
+// Force Refresh (مع cache buster)
+// ==========================================
+
+async function forceRefresh() {
+    const handle = document.getElementById("handleInput").value.trim();
+
+    if (!handle) {
+        showError("⚠️ الرجاء إدخال اسم الهاندل");
+        return;
+    }
+
+    hideError();
+    document.getElementById("results").classList.add("hidden");
+    setLoading(true);
+
+    try {
+        // ✅ مع cache buster لتجاوز أي cache
+        const submissions = await fetchCodeforcesAPI(handle, true);
+
+        console.log(`Force refresh - Total: ${submissions.length}`);
+
+        if (!submissions || submissions.length === 0) {
+            showError(`📭 لا توجد أي محاولات للمستخدم "${handle}"`);
+            return;
+        }
+
+        // ✅ إظهار معلومات أحدث submission
+        const newest = submissions[0];
+        const newestDate = getCairoDate(newest.creationTimeSeconds);
+        const newestTime = formatTime(newest.creationTimeSeconds);
+
+        displayAllDays(submissions, handle);
+
+        // ✅ رسالة تأكيد
+        showInfo(`✅ تم التحديث. آخر submission: ${newestDate} - ${newestTime}`);
+
+    } catch (error) {
+        console.error("Error:", error);
+        showError(`❌ ${error.message}`);
+    } finally {
+        setLoading(false);
+    }
+}
+
+// ==========================================
+// Show Info Message (success toast)
+// ==========================================
+
+function showInfo(message) {
+    const errorDiv = document.getElementById("errorMessage");
+    errorDiv.textContent = message;
+    errorDiv.style.background = "rgba(52, 168, 83, 0.1)";
+    errorDiv.style.borderColor = "var(--success)";
+    errorDiv.style.color = "var(--success)";
+    errorDiv.classList.remove("hidden");
+
+    // ✅ Reset style after 5 seconds
+    setTimeout(() => {
+        errorDiv.style.background = "";
+        errorDiv.style.borderColor = "";
+        errorDiv.style.color = "";
+        errorDiv.classList.add("hidden");
+    }, 5000);
+}
+
+// ==========================================
+// Display All Days
 // ==========================================
 
 function displayAllDays(submissions, handle) {
@@ -184,9 +270,9 @@ function displayAllDays(submissions, handle) {
 
     submissions.forEach((sub) => {
         if (!sub.problem) return;
-        
+
         const date = getCairoDate(sub.creationTimeSeconds);
-        
+
         if (!daysMap.has(date)) {
             daysMap.set(date, []);
         }
@@ -194,7 +280,7 @@ function displayAllDays(submissions, handle) {
     });
 
     // Sort days descending (newest first)
-    const sortedDays = [...daysMap.entries()].sort((a, b) => 
+    const sortedDays = [...daysMap.entries()].sort((a, b) =>
         b[0].localeCompare(a[0])
     );
 
@@ -205,7 +291,7 @@ function displayAllDays(submissions, handle) {
 
     // Render days
     const daysList = document.getElementById("daysList");
-    daysList.innerHTML = sortedDays.map(([date, daySubmissions]) => 
+    daysList.innerHTML = sortedDays.map(([date, daySubmissions]) =>
         renderDay(date, daySubmissions)
     ).join("");
 
@@ -272,14 +358,14 @@ function renderDay(date, submissions) {
                     <span class="stat-pill unique-pill">🎯 ${uniqueSolved.size} فريدة</span>
                 </div>
             </div>
-            
+
             ${solved.length > 0 ? `
                 <div class="day-section">
                     <h4 class="day-section-title">✅ مسائل محلولة (${solved.length})</h4>
                     <div class="problems-list">${solvedHTML}</div>
                 </div>
             ` : ""}
-            
+
             ${wrong.length > 0 ? `
                 <div class="day-section">
                     <h4 class="day-section-title">❌ محاولات خاطئة (${wrong.length})</h4>
@@ -336,7 +422,8 @@ function escapeHTML(text) {
 }
 
 // ==========================================
-// Global
+// Global Exports
 // ==========================================
 
 window.searchUser = searchUser;
+window.forceRefresh = forceRefresh;
