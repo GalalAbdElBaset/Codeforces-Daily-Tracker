@@ -16,67 +16,29 @@
 
         <div class="search-section">
             <div class="input-group">
-                <input type="text" id="handleInput" placeholder="أدخل اسم الهاندل (مثال: tourist)" />
-                <input type="date" id="dateInput" />
+                <input type="text" id="handleInput" placeholder="أدخل اسم الهاندل (مثال: YasserH2)" />
                 <button id="searchBtn" onclick="searchUser()">
                     <span class="btn-text">بحث</span>
                     <span class="loader" id="loader"></span>
                 </button>
             </div>
+            <p class="hint">💡 الموقع هيعرض كل الأيام اللي فيها محاولات تلقائياً</p>
         </div>
 
         <div id="errorMessage" class="error-message hidden"></div>
 
         <div id="results" class="results hidden">
-            <!-- Statistics Cards -->
-            <div class="stats-grid">
-                <div class="stat-card solved">
-                    <div class="stat-icon">✅</div>
-                    <div class="stat-info">
-                        <span class="stat-value" id="solvedCount">0</span>
-                        <span class="stat-label">مسائل محلولة</span>
-                    </div>
-                </div>
-                <div class="stat-card wrong">
-                    <div class="stat-icon">❌</div>
-                    <div class="stat-info">
-                        <span class="stat-value" id="wrongCount">0</span>
-                        <span class="stat-label">محاولات خاطئة</span>
-                    </div>
-                </div>
-                <div class="stat-card total">
-                    <div class="stat-icon">📊</div>
-                    <div class="stat-info">
-                        <span class="stat-value" id="totalCount">0</span>
-                        <span class="stat-label">إجمالي المحاولات</span>
-                    </div>
-                </div>
-                <div class="stat-card unique">
-                    <div class="stat-icon">🎯</div>
-                    <div class="stat-info">
-                        <span class="stat-value" id="uniqueCount">0</span>
-                        <span class="stat-label">مسائل فريدة</span>
-                    </div>
+            <!-- User Summary -->
+            <div class="user-summary">
+                <h2 id="userHandle"></h2>
+                <div class="summary-stats">
+                    <span>📊 <strong id="totalSubmissions">0</strong> submission إجمالي</span>
+                    <span>📅 <strong id="totalDays">0</strong> يوم نشاط</span>
                 </div>
             </div>
 
-            <!-- Solved Problems Section -->
-            <div class="section">
-                <h2 class="section-title">
-                    <span class="icon">✅</span>
-                    المسائل المحلولة
-                </h2>
-                <div id="solvedProblems" class="problems-list"></div>
-            </div>
-
-            <!-- Wrong Submissions Section -->
-            <div class="section">
-                <h2 class="section-title">
-                    <span class="icon">❌</span>
-                    المحاولات الخاطئة
-                </h2>
-                <div id="wrongProblems" class="problems-list"></div>
-            </div>
+            <!-- Days List -->
+            <div id="daysList" class="days-list"></div>
         </div>
 
         <footer class="footer">
