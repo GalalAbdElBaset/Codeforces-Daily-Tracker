@@ -1,22 +1,10 @@
 // ==========================================
-// Codeforces Daily Tracker - Fixed Version
+// Codeforces Daily Tracker - Simple Version
+// يعرض كل الأيام اللي فيها submissions
 // ==========================================
 
 // ==========================================
-// Get today's date in Cairo timezone
-// ==========================================
-
-function getTodayDate() {
-    return new Intl.DateTimeFormat("en-CA", {
-        timeZone: "Africa/Cairo",
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit"
-    }).format(new Date());
-}
-
-// ==========================================
-// Convert timestamp to Cairo date (YYYY-MM-DD)
+// Cairo Date Helper
 // ==========================================
 
 function getCairoDate(timestamp) {
@@ -28,24 +16,22 @@ function getCairoDate(timestamp) {
     }).format(new Date(timestamp * 1000));
 }
 
-// ==========================================
-// Format Date for display (Arabic, with Western digits)
-// ==========================================
+function formatCairoDate(dateString) {
+    const [year, month, day] = dateString.split("-");
+    const months = [
+        "يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو",
+        "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"
+    ];
+    return `${parseInt(day)} ${months[parseInt(month) - 1]} ${year}`;
+}
 
-function formatDate(timestamp) {
-    const date = new Date(timestamp * 1000);
-
-    // Use en-GB for date part (keeps Western digits) 
-    // then convert month name to Arabic manually for consistency
+function formatTime(timestamp) {
     return new Intl.DateTimeFormat("ar-EG-u-nu-latn", {
         timeZone: "Africa/Cairo",
-        year: "numeric",
-        month: "short",
-        day: "numeric",
         hour: "2-digit",
         minute: "2-digit",
         hour12: true
-    }).format(date);
+    }).format(new Date(timestamp * 1000));
 }
 
 // ==========================================
@@ -53,22 +39,22 @@ function formatDate(timestamp) {
 // ==========================================
 
 document.addEventListener("DOMContentLoaded", () => {
-    const dateInput = document.getElementById("dateInput");
     const handleInput = document.getElementById("handleInput");
-
-    // Today's date (Cairo timezone)
-    dateInput.value = getTodayDate();
-
-    // Enter key triggers search
     handleInput.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") {
-            searchUser();
-        }
+        if (e.key === "Enter") searchUser();
     });
+    
+    // Auto search if handle in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const handle = urlParams.get("handle");
+    if (handle) {
+        handleInput.value = handle;
+        searchUser();
+    }
 });
 
 // ==========================================
-// Loading State
+// Loading & Error
 // ==========================================
 
 function setLoading(isLoading) {
@@ -87,14 +73,11 @@ function setLoading(isLoading) {
     }
 }
 
-// ==========================================
-// Error Handling
-// ==========================================
-
 function showError(message) {
     const errorDiv = document.getElementById("errorMessage");
     errorDiv.textContent = message;
     errorDiv.classList.remove("hidden");
+    document.getElementById("results").classList.add("hidden");
 }
 
 function hideError() {
@@ -117,73 +100,39 @@ function formatVerdict(verdict) {
         IDLENESS_LIMIT_EXCEEDED: "⏸️ تجاوز حد الخمول",
         SECURITY_VIOLATED: "🔒 انتهاك أمني",
         CRASHED: "💔 انهيار",
-        INPUT_PREPARATION_CRASHED: "📥 انهيار تحضير المدخلات",
         CHALLENGED: "⚔️ تم التحدي",
         SKIPPED: "⏭️ تم التخطي",
         TESTING: "🔄 جاري الاختبار",
         REJECTED: "🚫 مرفوض",
         PARTIAL: "🔶 قبول جزئي",
-        ACCEPTED: "✅ مقبول",
         UNKNOWN: "❓ غير معروف"
     };
-
     return verdicts[verdict] || verdict || "❓ غير معروف";
 }
 
-function getVerdictClass(verdict) {
-    return verdict === "OK" ? "accepted" : "wrong";
-}
-
 // ==========================================
-// Fetch Codeforces API
+// Fetch API
 // ==========================================
 
 async function fetchCodeforcesAPI(handle) {
     const apiUrl = `/api/codeforces?handle=${encodeURIComponent(handle)}`;
 
-    console.log("Request URL:", apiUrl);
-
-    let response;
-
-    try {
-        response = await fetch(apiUrl, {
-            method: "GET",
-            headers: { Accept: "application/json" },
-            cache: "no-store"
-        });
-    } catch (error) {
-        console.error("Fetch Error:", error);
-        throw new Error("تعذر الاتصال بالسيرفر.");
-    }
+    const response = await fetch(apiUrl, {
+        method: "GET",
+        headers: { Accept: "application/json" },
+        cache: "no-store"
+    });
 
     if (!response.ok) {
         let errorData = null;
-        try {
-            errorData = await response.json();
-        } catch (error) {
-            // Ignore
-        }
-        throw new Error(
-            errorData?.comment ||
-            `الخادم أعاد خطأ HTTP ${response.status}`
-        );
+        try { errorData = await response.json(); } catch (e) {}
+        throw new Error(errorData?.comment || `HTTP ${response.status}`);
     }
 
-    let data;
-    try {
-        data = await response.json();
-    } catch (error) {
-        console.error("JSON Error:", error);
-        throw new Error("الخادم أرسل استجابة غير صالحة.");
-    }
-
-    console.log("API Response:", data);
+    const data = await response.json();
 
     if (!data || data.status !== "OK") {
-        throw new Error(
-            data?.comment ||
-            "Codeforces API لم يرجع بيانات صحيحة."
-        );
+        throw new Error(data?.comment || "فشل في جلب البيانات");
     }
 
     return data.result;
@@ -194,20 +143,10 @@ async function fetchCodeforcesAPI(handle) {
 // ==========================================
 
 async function searchUser() {
-    const handleInput = document.getElementById("handleInput");
-    const dateInput = document.getElementById("dateInput");
+    const handle = document.getElementById("handleInput").value.trim();
 
-    const handle = handleInput.value.trim();
-    const selectedDate = dateInput.value;
-
-    // Validation
     if (!handle) {
         showError("⚠️ الرجاء إدخال اسم الهاندل");
-        return;
-    }
-
-    if (!selectedDate) {
-        showError("⚠️ الرجاء اختيار التاريخ");
         return;
     }
 
@@ -217,90 +156,76 @@ async function searchUser() {
 
     try {
         const submissions = await fetchCodeforcesAPI(handle);
+        
+        console.log(`Total submissions: ${submissions.length}`);
+        
+        if (!submissions || submissions.length === 0) {
+            showError(`📭 لا توجد أي محاولات للمستخدم "${handle}"`);
+            return;
+        }
 
-        console.log(`Total submissions received: ${submissions.length}`);
-
-        // Debug: show all submission dates in Cairo timezone
-        console.table(
-            submissions.slice(0, 20).map((sub) => ({
-                id: sub.id,
-                date: getCairoDate(sub.creationTimeSeconds),
-                time: formatDate(sub.creationTimeSeconds),
-                verdict: sub.verdict,
-                problem: sub.problem?.name
-            }))
-        );
-
-        processSubmissions(submissions, selectedDate, handle);
+        displayAllDays(submissions, handle);
 
     } catch (error) {
-        console.error("Search Error:", error);
-        const message = error.message || "";
-
-        if (message.toLowerCase().includes("not found")) {
-            showError(`👤 لم يتم العثور على المستخدم "${handle}".`);
-        } else {
-            showError(`❌ ${message}`);
-        }
+        console.error("Error:", error);
+        showError(`❌ ${error.message}`);
     } finally {
         setLoading(false);
     }
 }
 
 // ==========================================
-// Process Submissions
+// Display All Days (الوظيفة الرئيسية)
 // ==========================================
 
-function processSubmissions(submissions, selectedDate, handle) {
-    console.log("Selected date:", selectedDate);
+function displayAllDays(submissions, handle) {
+    // Group submissions by Cairo date
+    const daysMap = new Map();
 
-    // Filter by Cairo date
-    const daySubmissions = submissions.filter((sub) => {
-        const submissionDate = getCairoDate(sub.creationTimeSeconds);
-        return submissionDate === selectedDate;
+    submissions.forEach((sub) => {
+        if (!sub.problem) return;
+        
+        const date = getCairoDate(sub.creationTimeSeconds);
+        
+        if (!daysMap.has(date)) {
+            daysMap.set(date, []);
+        }
+        daysMap.get(date).push(sub);
     });
 
-    console.log("Submissions for selected date:", daySubmissions);
-    console.log("Number of submissions for selected date:", daySubmissions.length);
+    // Sort days descending (newest first)
+    const sortedDays = [...daysMap.entries()].sort((a, b) => 
+        b[0].localeCompare(a[0])
+    );
 
-    // Reset statistics first
-    document.getElementById("solvedCount").textContent = "0";
-    document.getElementById("wrongCount").textContent = "0";
-    document.getElementById("totalCount").textContent = "0";
-    document.getElementById("uniqueCount").textContent = "0";
-    renderProblems("solvedProblems", [], true);
-    renderProblems("wrongProblems", [], false);
+    // Update summary
+    document.getElementById("userHandle").textContent = `👤 ${handle}`;
+    document.getElementById("totalSubmissions").textContent = submissions.length;
+    document.getElementById("totalDays").textContent = sortedDays.length;
 
-    // No submissions
-    if (daySubmissions.length === 0) {
-        document.getElementById("results").classList.remove("hidden");
+    // Render days
+    const daysList = document.getElementById("daysList");
+    daysList.innerHTML = sortedDays.map(([date, daySubmissions]) => 
+        renderDay(date, daySubmissions)
+    ).join("");
 
-        // Show helpful info: latest submission dates
-        const latestDates = [...new Set(
-            submissions
-                .slice(0, 50)
-                .map((sub) => getCairoDate(sub.creationTimeSeconds))
-        )].slice(0, 5).join(" / ");
+    // Show results
+    document.getElementById("results").classList.remove("hidden");
+}
 
-        showError(
-            `📭 لا توجد أي محاولات للمستخدم "${handle}" بتاريخ ${formatSelectedDate(selectedDate)}.\n` +
-            `💡 آخر تواريخ فيها محاولات: ${latestDates}`
-        );
+// ==========================================
+// Render a Single Day
+// ==========================================
 
-        return;
-    }
+function renderDay(date, submissions) {
+    // Split solved and wrong
+    const solved = [];
+    const wrong = [];
+    const uniqueSolved = new Set();
 
-    // Arrays
-    const solvedProblems = [];
-    const wrongProblems = [];
-    const uniqueSolvedProblems = new Set();
-
-    // Process
-    daySubmissions.forEach((sub) => {
+    submissions.forEach((sub) => {
         const problem = sub.problem;
         if (!problem) return;
-
-        const problemKey = `${problem.contestId}-${problem.index}`;
 
         const problemInfo = {
             name: problem.name,
@@ -314,96 +239,90 @@ function processSubmissions(submissions, selectedDate, handle) {
             problemUrl: `https://codeforces.com/problemset/problem/${problem.contestId}/${problem.index}`
         };
 
-        // Accepted
         if (sub.verdict === "OK") {
-            solvedProblems.push(problemInfo);
-            uniqueSolvedProblems.add(problemKey);
-        }
-        // Wrong (skip null verdicts - pending submissions)
-        else if (sub.verdict && sub.verdict !== "TESTING" && sub.verdict !== "SKIPPED") {
-            wrongProblems.push(problemInfo);
+            solved.push(problemInfo);
+            uniqueSolved.add(`${problem.contestId}-${problem.index}`);
+        } else if (sub.verdict && sub.verdict !== "TESTING" && sub.verdict !== "SKIPPED") {
+            wrong.push(problemInfo);
         }
     });
 
-    // Update Statistics
-    document.getElementById("solvedCount").textContent = solvedProblems.length;
-    document.getElementById("wrongCount").textContent = wrongProblems.length;
-    document.getElementById("totalCount").textContent = daySubmissions.length;
-    document.getElementById("uniqueCount").textContent = uniqueSolvedProblems.size;
+    // Sort by time
+    solved.sort((a, b) => a.time - b.time);
+    wrong.sort((a, b) => a.time - b.time);
 
-    // Render
-    renderProblems("solvedProblems", solvedProblems, true);
-    renderProblems("wrongProblems", wrongProblems, false);
+    const solvedHTML = solved.length > 0
+        ? solved.map((p) => renderProblem(p, true)).join("")
+        : '<div class="empty-mini">لا توجد مسائل محلولة</div>';
 
-    // Show results
-    document.getElementById("results").classList.remove("hidden");
+    const wrongHTML = wrong.length > 0
+        ? wrong.map((p) => renderProblem(p, false)).join("")
+        : '<div class="empty-mini">لا توجد محاولات خاطئة</div>';
+
+    return `
+        <div class="day-card">
+            <div class="day-header">
+                <div class="day-date">
+                    <span class="day-icon">📅</span>
+                    <span class="day-text">${formatCairoDate(date)}</span>
+                </div>
+                <div class="day-stats">
+                    <span class="stat-pill solved-pill">✅ ${solved.length} محلولة</span>
+                    <span class="stat-pill wrong-pill">❌ ${wrong.length} خاطئة</span>
+                    <span class="stat-pill unique-pill">🎯 ${uniqueSolved.size} فريدة</span>
+                </div>
+            </div>
+            
+            ${solved.length > 0 ? `
+                <div class="day-section">
+                    <h4 class="day-section-title">✅ مسائل محلولة (${solved.length})</h4>
+                    <div class="problems-list">${solvedHTML}</div>
+                </div>
+            ` : ""}
+            
+            ${wrong.length > 0 ? `
+                <div class="day-section">
+                    <h4 class="day-section-title">❌ محاولات خاطئة (${wrong.length})</h4>
+                    <div class="problems-list">${wrongHTML}</div>
+                </div>
+            ` : ""}
+        </div>
+    `;
 }
 
 // ==========================================
-// Format Selected Date
+// Render Problem Item
 // ==========================================
 
-function formatSelectedDate(dateString) {
-    const [year, month, day] = dateString.split("-");
-    return `${day}-${month}-${year}`;
-}
+function renderProblem(problem, isSolved) {
+    const tagsHTML = problem.tags.length > 0
+        ? `<div class="problem-tags">${problem.tags.slice(0, 4).map(tag =>
+            `<span class="tag">${escapeHTML(tag)}</span>`
+        ).join("")}</div>`
+        : "";
 
-// ==========================================
-// Render Problems
-// ==========================================
+    const ratingHTML = problem.rating !== "غير محدد"
+        ? `<span class="problem-rating">⭐ ${escapeHTML(problem.rating)}</span>`
+        : "";
 
-function renderProblems(containerId, problems, isSolved) {
-    const container = document.getElementById(containerId);
-
-    // Empty state
-    if (problems.length === 0) {
-        container.innerHTML = `
-            <div class="empty-state">
-                <span class="icon">${isSolved ? "📝" : "🎉"}</span>
-                <p>${isSolved ? "لا توجد مسائل محلولة في هذا اليوم" : "لا توجد محاولات خاطئة في هذا اليوم"}</p>
-            </div>
-        `;
-        return;
-    }
-
-    // Sort by time (earliest first)
-    problems.sort((a, b) => a.time - b.time);
-
-    // Render
-    container.innerHTML = problems.map((problem) => {
-        const tagsHTML = problem.tags.length > 0
-            ? `
-                <div class="problem-tags">
-                    ${problem.tags.slice(0, 5).map((tag) =>
-                        `<span class="tag">${escapeHTML(tag)}</span>`
-                    ).join("")}
+    return `
+        <div class="problem-item ${isSolved ? "solved-item" : "wrong-item"}">
+            <div class="problem-info">
+                <a href="${problem.problemUrl}" target="_blank" rel="noopener noreferrer" class="problem-name">
+                    ${escapeHTML(problem.contestId)}${escapeHTML(problem.index)} - ${escapeHTML(problem.name)}
+                </a>
+                <div class="problem-meta">
+                    ${ratingHTML}
+                    <span>💻 ${escapeHTML(problem.language)}</span>
+                    <span>🕐 ${formatTime(problem.time)}</span>
                 </div>
-            `
-            : "";
-
-        const ratingHTML = problem.rating !== "غير محدد"
-            ? `<span class="problem-rating">⭐ ${escapeHTML(problem.rating)}</span>`
-            : "";
-
-        return `
-            <div class="problem-item ${isSolved ? "solved-item" : "wrong-item"}">
-                <div class="problem-info">
-                    <a href="${problem.problemUrl}" target="_blank" rel="noopener noreferrer" class="problem-name">
-                        ${escapeHTML(problem.contestId)}${escapeHTML(problem.index)} - ${escapeHTML(problem.name)}
-                    </a>
-                    <div class="problem-meta">
-                        ${ratingHTML}
-                        <span>💻 ${escapeHTML(problem.language)}</span>
-                        <span>🕐 ${formatDate(problem.time)}</span>
-                    </div>
-                    ${tagsHTML}
-                </div>
-                <span class="verdict-badge ${getVerdictClass(problem.verdict)}">
-                    ${formatVerdict(problem.verdict)}
-                </span>
+                ${tagsHTML}
             </div>
-        `;
-    }).join("");
+            <span class="verdict-badge ${isSolved ? "accepted" : "wrong"}">
+                ${formatVerdict(problem.verdict)}
+            </span>
+        </div>
+    `;
 }
 
 // ==========================================
@@ -417,7 +336,7 @@ function escapeHTML(text) {
 }
 
 // ==========================================
-// Global Function
+// Global
 // ==========================================
 
 window.searchUser = searchUser;
