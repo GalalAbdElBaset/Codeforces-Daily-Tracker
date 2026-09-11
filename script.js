@@ -1,5 +1,5 @@
 // ==========================================
-// Codeforces Daily Tracker
+// Codeforces Daily Tracker - Fixed Version
 // ==========================================
 
 // ==========================================
@@ -16,6 +16,39 @@ function getTodayDate() {
 }
 
 // ==========================================
+// Convert timestamp to Cairo date (YYYY-MM-DD)
+// ==========================================
+
+function getCairoDate(timestamp) {
+    return new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Africa/Cairo",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit"
+    }).format(new Date(timestamp * 1000));
+}
+
+// ==========================================
+// Format Date for display (Arabic, with Western digits)
+// ==========================================
+
+function formatDate(timestamp) {
+    const date = new Date(timestamp * 1000);
+
+    // Use en-GB for date part (keeps Western digits) 
+    // then convert month name to Arabic manually for consistency
+    return new Intl.DateTimeFormat("ar-EG-u-nu-latn", {
+        timeZone: "Africa/Cairo",
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true
+    }).format(date);
+}
+
+// ==========================================
 // Initialize
 // ==========================================
 
@@ -23,10 +56,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const dateInput = document.getElementById("dateInput");
     const handleInput = document.getElementById("handleInput");
 
-    // Today's date
+    // Today's date (Cairo timezone)
     dateInput.value = getTodayDate();
 
-    // Enter key
+    // Enter key triggers search
     handleInput.addEventListener("keydown", (e) => {
         if (e.key === "Enter") {
             searchUser();
@@ -35,7 +68,7 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 // ==========================================
-// Loading
+// Loading State
 // ==========================================
 
 function setLoading(isLoading) {
@@ -55,130 +88,50 @@ function setLoading(isLoading) {
 }
 
 // ==========================================
-// Error
+// Error Handling
 // ==========================================
 
 function showError(message) {
-    const errorDiv =
-        document.getElementById("errorMessage");
-
+    const errorDiv = document.getElementById("errorMessage");
     errorDiv.textContent = message;
     errorDiv.classList.remove("hidden");
 }
 
 function hideError() {
-    document
-        .getElementById("errorMessage")
-        .classList.add("hidden");
+    document.getElementById("errorMessage").classList.add("hidden");
 }
 
 // ==========================================
-// Format Verdict
+// Verdict Formatting
 // ==========================================
 
 function formatVerdict(verdict) {
-
     const verdicts = {
-
         OK: "✅ مقبول",
-
         WRONG_ANSWER: "❌ إجابة خاطئة",
-
-        TIME_LIMIT_EXCEEDED:
-            "⏱️ تجاوز الوقت",
-
-        MEMORY_LIMIT_EXCEEDED:
-            "💾 تجاوز الذاكرة",
-
-        RUNTIME_ERROR:
-            "💥 خطأ في التشغيل",
-
-        COMPILATION_ERROR:
-            "🔧 خطأ في الترجمة",
-
-        PRESENTATION_ERROR:
-            "📝 خطأ في العرض",
-
-        IDLENESS_LIMIT_EXCEEDED:
-            "⏸️ تجاوز حد الخمول",
-
-        SECURITY_VIOLATED:
-            "🔒 انتهاك أمني",
-
-        CRASHED:
-            "💔 انهيار",
-
-        INPUT_PREPARATION_CRASHED:
-            "📥 انهيار تحضير المدخلات",
-
-        CHALLENGED:
-            "⚔️ تم التحدي",
-
-        SKIPPED:
-            "⏭️ تم التخطي",
-
-        TESTING:
-            "🔄 جاري الاختبار",
-
-        REJECTED:
-            "🚫 مرفوض",
-
-        PARTIAL:
-            "🔶 قبول جزئي",
-
-        ACCEPTED:
-            "✅ مقبول",
-
-        UNKNOWN:
-            "❓ غير معروف"
+        TIME_LIMIT_EXCEEDED: "⏱️ تجاوز الوقت",
+        MEMORY_LIMIT_EXCEEDED: "💾 تجاوز الذاكرة",
+        RUNTIME_ERROR: "💥 خطأ في التشغيل",
+        COMPILATION_ERROR: "🔧 خطأ في الترجمة",
+        PRESENTATION_ERROR: "📝 خطأ في العرض",
+        IDLENESS_LIMIT_EXCEEDED: "⏸️ تجاوز حد الخمول",
+        SECURITY_VIOLATED: "🔒 انتهاك أمني",
+        CRASHED: "💔 انهيار",
+        INPUT_PREPARATION_CRASHED: "📥 انهيار تحضير المدخلات",
+        CHALLENGED: "⚔️ تم التحدي",
+        SKIPPED: "⏭️ تم التخطي",
+        TESTING: "🔄 جاري الاختبار",
+        REJECTED: "🚫 مرفوض",
+        PARTIAL: "🔶 قبول جزئي",
+        ACCEPTED: "✅ مقبول",
+        UNKNOWN: "❓ غير معروف"
     };
 
-    return verdicts[verdict] || verdict;
+    return verdicts[verdict] || verdict || "❓ غير معروف";
 }
-
-// ==========================================
-// Verdict Class
-// ==========================================
 
 function getVerdictClass(verdict) {
-    return verdict === "OK"
-        ? "accepted"
-        : "wrong";
-}
-
-// ==========================================
-// Format Date
-// ==========================================
-
-function formatDate(timestamp) {
-
-    const date =
-        new Date(timestamp * 1000);
-
-    return new Intl.DateTimeFormat("ar-EG", {
-        timeZone: "Africa/Cairo",
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit"
-    }).format(date);
-}
-
-// ==========================================
-// Get Cairo Date
-// ==========================================
-
-function getCairoDate(timestamp) {
-
-    return new Intl.DateTimeFormat("en-CA", {
-        timeZone: "Africa/Cairo",
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit"
-    }).format(
-        new Date(timestamp * 1000)
-    );
+    return verdict === "OK" ? "accepted" : "wrong";
 }
 
 // ==========================================
@@ -186,99 +139,47 @@ function getCairoDate(timestamp) {
 // ==========================================
 
 async function fetchCodeforcesAPI(handle) {
+    const apiUrl = `/api/codeforces?handle=${encodeURIComponent(handle)}`;
 
-    const apiUrl =
-        `/api/codeforces?handle=${encodeURIComponent(handle)}`;
-
-    console.log(
-        "Request URL:",
-        apiUrl
-    );
+    console.log("Request URL:", apiUrl);
 
     let response;
 
     try {
-
         response = await fetch(apiUrl, {
             method: "GET",
-
-            headers: {
-                Accept: "application/json"
-            },
-
+            headers: { Accept: "application/json" },
             cache: "no-store"
         });
-
     } catch (error) {
-
-        console.error(
-            "Fetch Error:",
-            error
-        );
-
-        throw new Error(
-            "تعذر الاتصال بالسيرفر."
-        );
+        console.error("Fetch Error:", error);
+        throw new Error("تعذر الاتصال بالسيرفر.");
     }
 
-    // ======================================
-    // HTTP Error
-    // ======================================
-
     if (!response.ok) {
-
         let errorData = null;
-
         try {
-            errorData =
-                await response.json();
+            errorData = await response.json();
         } catch (error) {
             // Ignore
         }
-
         throw new Error(
             errorData?.comment ||
             `الخادم أعاد خطأ HTTP ${response.status}`
         );
     }
 
-    // ======================================
-    // JSON
-    // ======================================
-
     let data;
-
     try {
-
-        data =
-            await response.json();
-
+        data = await response.json();
     } catch (error) {
-
-        console.error(
-            "JSON Error:",
-            error
-        );
-
-        throw new Error(
-            "الخادم أرسل استجابة غير صالحة."
-        );
+        console.error("JSON Error:", error);
+        throw new Error("الخادم أرسل استجابة غير صالحة.");
     }
 
-    console.log(
-        "API Response:",
-        data
-    );
+    console.log("API Response:", data);
 
-    // ======================================
-    // API Error
-    // ======================================
-
-    if (
-        !data ||
-        data.status !== "OK"
-    ) {
-
+    if (!data || data.status !== "OK") {
         throw new Error(
             data?.comment ||
             "Codeforces API لم يرجع بيانات صحيحة."
@@ -293,133 +194,55 @@ async function fetchCodeforcesAPI(handle) {
 // ==========================================
 
 async function searchUser() {
+    const handleInput = document.getElementById("handleInput");
+    const dateInput = document.getElementById("dateInput");
 
-    const handleInput =
-        document.getElementById(
-            "handleInput"
-        );
+    const handle = handleInput.value.trim();
+    const selectedDate = dateInput.value;
 
-    const dateInput =
-        document.getElementById(
-            "dateInput"
-        );
-
-    const handle =
-        handleInput.value.trim();
-
-    const selectedDate =
-        dateInput.value;
-
-    // ======================================
     // Validation
-    // ======================================
-
     if (!handle) {
-
-        showError(
-            "⚠️ الرجاء إدخال اسم الهاندل"
-        );
-
+        showError("⚠️ الرجاء إدخال اسم الهاندل");
         return;
     }
 
     if (!selectedDate) {
-
-        showError(
-            "⚠️ الرجاء اختيار التاريخ"
-        );
-
+        showError("⚠️ الرجاء اختيار التاريخ");
         return;
     }
 
     hideError();
-
-    document
-        .getElementById("results")
-        .classList.add("hidden");
-
+    document.getElementById("results").classList.add("hidden");
     setLoading(true);
 
     try {
+        const submissions = await fetchCodeforcesAPI(handle);
 
-        // ==================================
-        // Get submissions
-        // ==================================
+        console.log(`Total submissions received: ${submissions.length}`);
 
-        const submissions =
-            await fetchCodeforcesAPI(
-                handle
-            );
-
-        // ==================================
-        // Debug
-        // ==================================
-
-        console.log(
-            `Total submissions received: ${submissions.length}`
-        );
-
+        // Debug: show all submission dates in Cairo timezone
         console.table(
-            submissions.map((sub) => ({
+            submissions.slice(0, 20).map((sub) => ({
                 id: sub.id,
-
-                date:
-                    getCairoDate(
-                        sub.creationTimeSeconds
-                    ),
-
-                time:
-                    formatDate(
-                        sub.creationTimeSeconds
-                    ),
-
-                verdict:
-                    sub.verdict,
-
-                problem:
-                    sub.problem?.name
+                date: getCairoDate(sub.creationTimeSeconds),
+                time: formatDate(sub.creationTimeSeconds),
+                verdict: sub.verdict,
+                problem: sub.problem?.name
             }))
         );
 
-        // ==================================
-        // Process
-        // ==================================
-
-        processSubmissions(
-            submissions,
-            selectedDate,
-            handle
-        );
+        processSubmissions(submissions, selectedDate, handle);
 
     } catch (error) {
+        console.error("Search Error:", error);
+        const message = error.message || "";
 
-        console.error(
-            "Search Error:",
-            error
-        );
-
-        const message =
-            error.message || "";
-
-        if (
-            message
-                .toLowerCase()
-                .includes("not found")
-        ) {
-
-            showError(
-                `👤 لم يتم العثور على المستخدم "${handle}".`
-            );
-
+        if (message.toLowerCase().includes("not found")) {
+            showError(`👤 لم يتم العثور على المستخدم "${handle}".`);
         } else {
-
-            showError(
-                `❌ ${message}`
-            );
+            showError(`❌ ${message}`);
         }
-
     } finally {
-
         setLoading(false);
     }
 }
@@ -428,232 +251,92 @@ async function searchUser() {
 // Process Submissions
 // ==========================================
 
-function processSubmissions(
-    submissions,
-    selectedDate,
-    handle
-) {
+function processSubmissions(submissions, selectedDate, handle) {
+    console.log("Selected date:", selectedDate);
 
-    console.log(
-        "Selected date:",
-        selectedDate
-    );
-
-    // ======================================
     // Filter by Cairo date
-    // ======================================
+    const daySubmissions = submissions.filter((sub) => {
+        const submissionDate = getCairoDate(sub.creationTimeSeconds);
+        return submissionDate === selectedDate;
+    });
 
-    const daySubmissions =
-        submissions.filter((sub) => {
+    console.log("Submissions for selected date:", daySubmissions);
+    console.log("Number of submissions for selected date:", daySubmissions.length);
 
-            const submissionDate =
-                getCairoDate(
-                    sub.creationTimeSeconds
-                );
+    // Reset statistics first
+    document.getElementById("solvedCount").textContent = "0";
+    document.getElementById("wrongCount").textContent = "0";
+    document.getElementById("totalCount").textContent = "0";
+    document.getElementById("uniqueCount").textContent = "0";
+    renderProblems("solvedProblems", [], true);
+    renderProblems("wrongProblems", [], false);
 
-            return (
-                submissionDate ===
-                selectedDate
-            );
-        });
-
-    // ======================================
-    // Debug filtered data
-    // ======================================
-
-    console.log(
-        "Submissions for selected date:",
-        daySubmissions
-    );
-
-    console.log(
-        "Number of submissions for selected date:",
-        daySubmissions.length
-    );
-
-    // ======================================
     // No submissions
-    // ======================================
+    if (daySubmissions.length === 0) {
+        document.getElementById("results").classList.remove("hidden");
 
-    if (
-        daySubmissions.length === 0
-    ) {
-
-        document
-            .getElementById("results")
-            .classList.remove("hidden");
-
-        document
-            .getElementById("solvedCount")
-            .textContent = "0";
-
-        document
-            .getElementById("wrongCount")
-            .textContent = "0";
-
-        document
-            .getElementById("totalCount")
-            .textContent = "0";
-
-        document
-            .getElementById("uniqueCount")
-            .textContent = "0";
-
-        renderProblems(
-            "solvedProblems",
-            [],
-            true
-        );
-
-        renderProblems(
-            "wrongProblems",
-            [],
-            false
-        );
+        // Show helpful info: latest submission dates
+        const latestDates = [...new Set(
+            submissions
+                .slice(0, 50)
+                .map((sub) => getCairoDate(sub.creationTimeSeconds))
+        )].slice(0, 5).join(" / ");
 
         showError(
-            `📭 لا توجد أي محاولات للمستخدم "${handle}" بتاريخ ${formatSelectedDate(selectedDate)}`
+            `📭 لا توجد أي محاولات للمستخدم "${handle}" بتاريخ ${formatSelectedDate(selectedDate)}.\n` +
+            `💡 آخر تواريخ فيها محاولات: ${latestDates}`
         );
 
         return;
     }
 
-    // ======================================
     // Arrays
-    // ======================================
-
     const solvedProblems = [];
-
     const wrongProblems = [];
+    const uniqueSolvedProblems = new Set();
 
-    const uniqueSolvedProblems =
-        new Set();
-
-    // ======================================
-    // Process submissions
-    // ======================================
-
+    // Process
     daySubmissions.forEach((sub) => {
+        const problem = sub.problem;
+        if (!problem) return;
 
-        const problem =
-            sub.problem;
-
-        if (!problem) {
-            return;
-        }
-
-        const problemKey =
-            `${problem.contestId}-${problem.index}`;
+        const problemKey = `${problem.contestId}-${problem.index}`;
 
         const problemInfo = {
-
-            name:
-                problem.name,
-
-            index:
-                problem.index,
-
-            contestId:
-                problem.contestId,
-
-            rating:
-                problem.rating ||
-                "غير محدد",
-
-            tags:
-                problem.tags || [],
-
-            verdict:
-                sub.verdict,
-
-            language:
-                sub.programmingLanguage ||
-                "غير محدد",
-
-            time:
-                sub.creationTimeSeconds,
-
-            problemUrl:
-                `https://codeforces.com/problemset/problem/${problem.contestId}/${problem.index}`
+            name: problem.name,
+            index: problem.index,
+            contestId: problem.contestId,
+            rating: problem.rating || "غير محدد",
+            tags: problem.tags || [],
+            verdict: sub.verdict,
+            language: sub.programmingLanguage || "غير محدد",
+            time: sub.creationTimeSeconds,
+            problemUrl: `https://codeforces.com/problemset/problem/${problem.contestId}/${problem.index}`
         };
 
-        // ==================================
         // Accepted
-        // ==================================
-
-        if (
-            sub.verdict === "OK"
-        ) {
-
-            solvedProblems.push(
-                problemInfo
-            );
-
-            uniqueSolvedProblems.add(
-                problemKey
-            );
-
+        if (sub.verdict === "OK") {
+            solvedProblems.push(problemInfo);
+            uniqueSolvedProblems.add(problemKey);
         }
-
-        // ==================================
-        // Wrong
-        // ==================================
-
-        else {
-
-            wrongProblems.push(
-                problemInfo
-            );
+        // Wrong (skip null verdicts - pending submissions)
+        else if (sub.verdict && sub.verdict !== "TESTING" && sub.verdict !== "SKIPPED") {
+            wrongProblems.push(problemInfo);
         }
     });
 
-    // ======================================
-    // Statistics
-    // ======================================
+    // Update Statistics
+    document.getElementById("solvedCount").textContent = solvedProblems.length;
+    document.getElementById("wrongCount").textContent = wrongProblems.length;
+    document.getElementById("totalCount").textContent = daySubmissions.length;
+    document.getElementById("uniqueCount").textContent = uniqueSolvedProblems.size;
 
-    document
-        .getElementById("solvedCount")
-        .textContent =
-        solvedProblems.length;
-
-    document
-        .getElementById("wrongCount")
-        .textContent =
-        wrongProblems.length;
-
-    document
-        .getElementById("totalCount")
-        .textContent =
-        daySubmissions.length;
-
-    document
-        .getElementById("uniqueCount")
-        .textContent =
-        uniqueSolvedProblems.size;
-
-    // ======================================
     // Render
-    // ======================================
+    renderProblems("solvedProblems", solvedProblems, true);
+    renderProblems("wrongProblems", wrongProblems, false);
 
-    renderProblems(
-        "solvedProblems",
-        solvedProblems,
-        true
-    );
-
-    renderProblems(
-        "wrongProblems",
-        wrongProblems,
-        false
-    );
-
-    // ======================================
     // Show results
-    // ======================================
-
-    document
-        .getElementById("results")
-        .classList.remove("hidden");
+    document.getElementById("results").classList.remove("hidden");
 }
 
 // ==========================================
@@ -661,14 +344,7 @@ function processSubmissions(
 // ==========================================
 
 function formatSelectedDate(dateString) {
-
-    const [
-        year,
-        month,
-        day
-    ] =
-        dateString.split("-");
-
+    const [year, month, day] = dateString.split("-");
     return `${day}-${month}-${year}`;
 }
 
@@ -676,151 +352,58 @@ function formatSelectedDate(dateString) {
 // Render Problems
 // ==========================================
 
-function renderProblems(
-    containerId,
-    problems,
-    isSolved
-) {
+function renderProblems(containerId, problems, isSolved) {
+    const container = document.getElementById(containerId);
 
-    const container =
-        document.getElementById(
-            containerId
-        );
-
-    // ======================================
-    // Empty
-    // ======================================
-
-    if (
-        problems.length === 0
-    ) {
-
+    // Empty state
+    if (problems.length === 0) {
         container.innerHTML = `
             <div class="empty-state">
-
-                <span class="icon">
-                    ${
-                        isSolved
-                            ? "📝"
-                            : "🎉"
-                    }
-                </span>
-
-                <p>
-                    ${
-                        isSolved
-                            ? "لا توجد مسائل محلولة في هذا اليوم"
-                            : "لا توجد محاولات خاطئة في هذا اليوم"
-                    }
-                </p>
-
+                <span class="icon">${isSolved ? "📝" : "🎉"}</span>
+                <p>${isSolved ? "لا توجد مسائل محلولة في هذا اليوم" : "لا توجد محاولات خاطئة في هذا اليوم"}</p>
             </div>
         `;
-
         return;
     }
 
-    // ======================================
-    // Sort by time
-    // ======================================
+    // Sort by time (earliest first)
+    problems.sort((a, b) => a.time - b.time);
 
-    problems.sort(
-        (a, b) =>
-            a.time - b.time
-    );
-
-    // ======================================
     // Render
-    // ======================================
+    container.innerHTML = problems.map((problem) => {
+        const tagsHTML = problem.tags.length > 0
+            ? `
+                <div class="problem-tags">
+                    ${problem.tags.slice(0, 5).map((tag) =>
+                        `<span class="tag">${escapeHTML(tag)}</span>`
+                    ).join("")}
+                </div>
+            `
+            : "";
 
-    container.innerHTML =
-        problems.map(
-            (problem) => {
+        const ratingHTML = problem.rating !== "غير محدد"
+            ? `<span class="problem-rating">⭐ ${escapeHTML(problem.rating)}</span>`
+            : "";
 
-                const tagsHTML =
-                    problem.tags.length > 0
-                        ? `
-                            <div class="problem-tags">
-
-                                ${problem.tags
-                                    .slice(0, 5)
-                                    .map(
-                                        (tag) =>
-                                            `<span class="tag">${escapeHTML(tag)}</span>`
-                                    )
-                                    .join("")}
-
-                            </div>
-                        `
-                        : "";
-
-                const ratingHTML =
-                    problem.rating !==
-                    "غير محدد"
-                        ? `
-                            <span class="problem-rating">
-                                ⭐ ${escapeHTML(problem.rating)}
-                            </span>
-                        `
-                        : "";
-
-                return `
-                    <div class="problem-item ${
-                        isSolved
-                            ? "solved-item"
-                            : "wrong-item"
-                    }">
-
-                        <div class="problem-info">
-
-                            <a
-                                href="${problem.problemUrl}"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                class="problem-name"
-                            >
-                                ${escapeHTML(problem.contestId)}
-                                ${escapeHTML(problem.index)}
-                                -
-                                ${escapeHTML(problem.name)}
-                            </a>
-
-                            <div class="problem-meta">
-
-                                ${ratingHTML}
-
-                                <span>
-                                    💻
-                                    ${escapeHTML(problem.language)}
-                                </span>
-
-                                <span>
-                                    🕐
-                                    ${formatDate(problem.time)}
-                                </span>
-
-                            </div>
-
-                            ${tagsHTML}
-
-                        </div>
-
-                        <span class="verdict-badge ${
-                            getVerdictClass(
-                                problem.verdict
-                            )
-                        }">
-
-                            ${formatVerdict(
-                                problem.verdict
-                            )}
-
-                        </span>
-
+        return `
+            <div class="problem-item ${isSolved ? "solved-item" : "wrong-item"}">
+                <div class="problem-info">
+                    <a href="${problem.problemUrl}" target="_blank" rel="noopener noreferrer" class="problem-name">
+                        ${escapeHTML(problem.contestId)}${escapeHTML(problem.index)} - ${escapeHTML(problem.name)}
+                    </a>
+                    <div class="problem-meta">
+                        ${ratingHTML}
+                        <span>💻 ${escapeHTML(problem.language)}</span>
+                        <span>🕐 ${formatDate(problem.time)}</span>
                     </div>
-                `;
-            }
-        ).join("");
+                    ${tagsHTML}
+                </div>
+                <span class="verdict-badge ${getVerdictClass(problem.verdict)}">
+                    ${formatVerdict(problem.verdict)}
+                </span>
+            </div>
+        `;
+    }).join("");
 }
 
 // ==========================================
@@ -828,15 +411,8 @@ function renderProblems(
 // ==========================================
 
 function escapeHTML(text) {
-
-    const div =
-        document.createElement(
-            "div"
-        );
-
-    div.textContent =
-        String(text ?? "");
-
+    const div = document.createElement("div");
+    div.textContent = String(text ?? "");
     return div.innerHTML;
 }
 
@@ -844,5 +420,4 @@ function escapeHTML(text) {
 // Global Function
 // ==========================================
 
-window.searchUser =
-    searchUser;
+window.searchUser = searchUser;
